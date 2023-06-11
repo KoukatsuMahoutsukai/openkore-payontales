@@ -3,7 +3,7 @@
 
 ######## Login options and server-specific options ########
 
-master
+master PayonTales
 server
 username
 password
@@ -208,7 +208,7 @@ lockMap_randY
 route_escape_reachedNoPortal 1
 route_escape_randomWalk 1
 route_escape_shout
-route_avoidWalls 1
+route_avoidWalls 0
 route_randomWalk 1
 route_randomWalk_inTown 0
 route_randomWalk_maxRouteTime 75
@@ -218,7 +218,7 @@ route_teleport 0
 route_teleport_minDistance 75
 route_teleport_maxTries 8
 route_teleport_notInMaps
-route_step 10
+route_step 15
 route_removeMissingPortals_NPC 1
 route_removeMissingPortals 0
 route_tryToGuessMissingPortalByDistance 1
@@ -307,11 +307,11 @@ partyAutoShareItemDiv 0
 guildAutoDeny 1
 attendanceAuto 1
 
-verbose 1
+verbose 0
 showDomain 0
 showDomain_NPC parseMsg_presence
 showDomain_Shop list
-squelchDomains
+squelchDomains ai_attack, ai_npcTalk, attacked, attackedMiss, attackMon, attackMonMiss, drop, emotion, exp, looter, route, route_teleport, inventory
 verboseDomains
 beepDomains
 beepDomains_notInTown
@@ -331,20 +331,20 @@ showAllDamage 0
 manualURL https://openkore.com/wiki/Manual
 forumURL https://forums.openkore.com
 
-logChat 1
-logPrivateChat 1
-logPartyChat 1
-logGuildChat 1
-logSystemChat 1
-logLocalBroadcast 1
-logShop 1
+logChat 0
+logPrivateChat 0
+logPartyChat 0
+logGuildChat 0
+logSystemChat 0
+logLocalBroadcast 0
+logShop 0
 logEmoticons
 logConsole 1
-logAppendUsername 1
+logAppendUsername 0
 logAppendServer 0
 monsterLog 0
 playerLog 0
-logDead 1
+logDead 0
 
 questDisplayStyle 2
 
@@ -352,7 +352,7 @@ chatTitleOversize 0
 shopTitleOversize 0
 buyerShopTitleOversize 0
 
-sleepTime 10000
+sleepTime 200000
 
 ignoreAll 0
 itemHistory 0
