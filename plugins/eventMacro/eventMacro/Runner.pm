@@ -586,6 +586,7 @@ sub define_next_valid_command {
 			return "" if ($self->{finished});
 			debug "[eventMacro] Checking macro '".$self->{name}."', line index '".$self->line_index."' for a macro command.\n", "eventMacro", 3;
 			debug "[eventMacro] Script '".$self->{current_line}."'.\n", "eventMacro", 3;
+			print "Analyzing: $self->{current_line}\n";
 		} else {
 			debug "[eventMacro] Rechecking macro '".$self->{name}."', line index '".$self->line_index."' for a macro command after it was cleaned.\n", "eventMacro", 3;
 			debug "[eventMacro] New cleaned script '".$self->{current_line}."'.\n", "eventMacro", 3;
@@ -595,8 +596,8 @@ sub define_next_valid_command {
 		######################################
 		# While statement: while (foo <= bar) {
 		######################################
-		if ($self->{current_line} =~ /^while\s*\(/) {
-			my ($condition_text) = $self->{current_line} =~ /^while\s*(\(.*\))\s+{$/;
+		if ($self->{current_line} =~ /^\s*while\s*\(/) {
+            my ($condition_text) = $self->{current_line} =~ /^\s*while\s*(\(.*\))\s*{/;
 
 			debug "[eventMacro] Script is the start of a while 'block'.\n", "eventMacro", 3;
 
@@ -616,8 +617,8 @@ sub define_next_valid_command {
 		######################################
 		# Postfix 'if'
 		######################################
-		} elsif ($self->{current_line} =~ /.+\s+if\s*\(.*\)$/) {
-			my ($condition_text) = $self->{current_line} =~ /.+\s+if\s*(\(.*\))$/;
+		} elsif ($self->{current_line} =~ /\S+\s+if\s*\(.+\)$/) {
+            my ($condition_text) = $self->{current_line} =~ /\S+\s+if\s*(\(.*\))$/;
 
 			debug "[eventMacro] Script is a command with a postfixed 'if'.\n", "eventMacro", 3;
 
@@ -636,7 +637,7 @@ sub define_next_valid_command {
 		######################################
 		# Initial 'if'
 		######################################
-		} elsif ($self->{current_line} =~ /^if\s*\(/) {
+		} elsif ($self->{current_line} =~ /^\s*if\s*\(/) {
 
 			debug "[eventMacro] Script is a 'if' condition.\n", "eventMacro", 3;
 
@@ -711,12 +712,13 @@ sub define_next_valid_command {
 		######################################
 		# Switch statement
 		######################################
-		} elsif ($self->{current_line} =~ /^switch.*{$/) {
+		} elsif ($self->{current_line} =~ /^\s*switch.*{$/) {
+            my ($first_part) = $self->{current_line} =~ /^\s*switch\s*(\(.*)\)\s*{/;
 
 			# this regex may look wrong, but it's not
 			# when the line is "switch ( $name ) {" for example, i want to get only "( $name" whitout the closing parenthesis
 			# the reason is because the closing parenthesis will come from $second_part on case block :D
-			my ($first_part) = $self->{current_line} =~ /^switch\s*(\(.*)\)\s*{$/;
+			# my ($first_part) = $self->{current_line} =~ /^switch\s*(\(.*)\)\s*{$/;
 
 			debug "[eventMacro] Script is a 'switch' block, searching all 'case' and 'else' blocks.\n", "eventMacro", 3;
 
@@ -830,7 +832,7 @@ sub define_next_valid_command {
 		######################################
 		# If arriving at a line 'else' or 'elsif'
 		######################################
-		} elsif ($self->{current_line} =~ /^}\s*else\s*{/ || $self->{current_line} =~ /^}\s*elsif.*{$/) {
+		} elsif ($self->{current_line} =~ /^\s*}\s*else\s*{/ || $self->{current_line} =~ /^\s*}\s*elsif.*{$/) {
 
 			debug "[eventMacro] Script is a not important condition block ('else' or 'elsif') after an 'if' block, cleaning it.\n", "eventMacro", 3;
 
@@ -859,7 +861,7 @@ sub define_next_valid_command {
 		######################################
 		# Switch arriving at a line 'else' or 'case'
 		######################################
-		} elsif ($self->{current_line} =~ /^case/ || $self->{current_line} =~ /^else/) {
+		} elsif ($self->{current_line} =~ /^\s*}\s*else\s*{/ || $self->{current_line} =~ /^\s*}\s*elsif.*{$/) {
 			my (undef, $after_case) = $self->{current_line} =~ /^(case\s*\(.*\)|else)\s*(.*)/;
 
 			debug "[eventMacro] Script is a not important condition block ('else' or 'case') after an 'switch' block, cleaning it.\n", "eventMacro", 3;
@@ -951,7 +953,6 @@ sub define_next_valid_command {
 # Processes next line of macro script
 sub next {
 	my $self = $_[0];
-
 	#We must finish the subcall before returning to this macro
 	return $self->manage_subcall if (defined $self->{subcall});
 

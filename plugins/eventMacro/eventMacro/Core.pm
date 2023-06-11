@@ -14,6 +14,7 @@ use eventMacro::FileParser;
 use eventMacro::Macro;
 use eventMacro::Runner;
 use eventMacro::Condition;
+use Time::HiRes qw(time sleep);
 use eventMacro::Utilities qw(find_variable get_key_or_index);
 
 sub new {
@@ -735,6 +736,7 @@ sub set_hashes_size_to_zero {
 sub check_all_conditions {
 	my ($self) = @_;
 	debug "[eventMacro] Starting to check all state type conditions\n", "eventMacro", 2;
+
 	my @automacros = @{ $self->{Automacro_List}->getItems() };
 	foreach my $automacro (@automacros) {
 		debug "[eventMacro] Checking all state type conditions in automacro '".$automacro->get_name."'\n", "eventMacro", 2;
@@ -1300,123 +1302,142 @@ sub remove_from_triggered_prioritized_automacros_index_list {
 	return $queue_index;
 }
 
+# my $callback_counter = 0;
+
+my $lastCallTime = 0;
+my $minInterval = 50;  # Minimum interval in seconds
+my $maxInterval = 70;  # Maximum interval in seconds
+my $randomInterval = int(rand($maxInterval - $minInterval + 1)) + $minInterval;
+
+
 sub manage_event_callbacks {
-	my $self = shift;
-	my $callback_type = shift;
-	my $callback_name = shift;
-	my $callback_args = shift;
-	my $check_list_hash = shift;
+	# $callback_counter++;
+	my $currentTime = time();
+    my $intervalc = int($currentTime - $lastCallTime);
+	# if ($callback_counter >= 15) {
+	# 	$callback_counter = 0;
+	if ($intervalc > $randomInterval) {
+        $lastCallTime = $currentTime;
+		my $self = shift;
+		my $callback_type = shift;
+		my $callback_name = shift;
+		my $callback_args = shift;
+		my $check_list_hash = shift;
 
-	my $debug_message = "[eventMacro] Callback Happenned, type: '".$callback_type."'";
+		my $debug_message = "[eventMacro] Callback Happenned, type: '".$callback_type."'";
 
-	$debug_message .= ", name: '".$callback_name."'";
+		$debug_message .= ", name: '".$callback_name."'";
 
-	if ($callback_type eq 'variable') {
-		my $sub_type = shift;
-		my $complement = shift;
-		$debug_message .= ", variable type: '".$sub_type."'";
+		if ($callback_type eq 'variable') {
+			my $sub_type = shift;
+			my $complement = shift;
+			$debug_message .= ", variable type: '".$sub_type."'";
 
-		if ($sub_type eq 'scalar') {
-			$callback_name = '$'.$callback_name;
+			if ($sub_type eq 'scalar') {
+				$callback_name = '$'.$callback_name;
 
-		} elsif ($sub_type eq 'array') {
-			$callback_name = '@'.$callback_name;
+			} elsif ($sub_type eq 'array') {
+				$callback_name = '@'.$callback_name;
 
-		} elsif ($sub_type eq 'accessed_array') {
-			$callback_name = '$'.$callback_name.'['.$complement.']';
-			$debug_message .= ", array index: '".$complement."'";
+			} elsif ($sub_type eq 'accessed_array') {
+				$callback_name = '$'.$callback_name.'['.$complement.']';
+				$debug_message .= ", array index: '".$complement."'";
 
-		} elsif ($sub_type eq 'hash') {
-			$callback_name = '%'.$callback_name;
+			} elsif ($sub_type eq 'hash') {
+				$callback_name = '%'.$callback_name;
 
-		} elsif ($sub_type eq 'accessed_hash') {
-			$callback_name = '$'.$callback_name.'{'.$complement.'}';
-			$debug_message .= ", hash key: '".$complement."'";
+			} elsif ($sub_type eq 'accessed_hash') {
+				$callback_name = '$'.$callback_name.'{'.$complement.'}';
+				$debug_message .= ", hash key: '".$complement."'";
+			}
+			$debug_message .= ", variable value: '".$callback_args."'";
 		}
-		$debug_message .= ", variable value: '".$callback_args."'";
-	}
 
-	debug $debug_message."\n", "eventMacro", 2;
+		debug $debug_message."\n", "eventMacro", 2;
 
-	my ($event_type_automacro_call_index, $event_type_automacro_call_priority);
+		my ($event_type_automacro_call_index, $event_type_automacro_call_priority);
 
-	foreach my $automacro_index (keys %{$check_list_hash}) {
-		my ($automacro, $conditions_indexes_hash, $check_event_type) = ($self->{Automacro_List}->get($automacro_index), $check_list_hash->{$automacro_index}, 0);
 
-		debug "[eventMacro] Conditions of state type will be checked in automacro '".$automacro->get_name()."'.\n", "eventMacro", 2;
+	
 
-		my @conditions_indexes_array = keys %{ $conditions_indexes_hash };
+		foreach my $automacro_index (keys %{$check_list_hash}) {
+			my ($automacro, $conditions_indexes_hash, $check_event_type) = ($self->{Automacro_List}->get($automacro_index), $check_list_hash->{$automacro_index}, 0);
 
-		foreach my $condition_index (@conditions_indexes_array) {
-			my $condition = $automacro->{conditionList}->get($condition_index);
+			debug "[eventMacro] Conditions of state type will be checked in automacro '".$automacro->get_name()."'.\n", "eventMacro", 2;
 
-			if ($condition->condition_type == EVENT_TYPE) {
-				debug "[eventMacro] Skipping condition '".$condition->get_name."' of index '".$condition->get_index."' because it is of the event type.\n", "eventMacro", 3;
-				$check_event_type = 1;
-				next;
-			} else {
-				debug "[eventMacro] Variable value will be updated in condition of state type in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3 if ($callback_type eq 'variable');
+			my @conditions_indexes_array = keys %{ $conditions_indexes_hash };
 
-				my $result = $automacro->check_state_type_condition($condition_index, $callback_type, $callback_name, $callback_args);
+			foreach my $condition_index (@conditions_indexes_array) {
+				my $condition = $automacro->{conditionList}->get($condition_index);
 
-				#add to running queue
-				if (!$result && $automacro->running_status) {
-					$self->remove_from_triggered_prioritized_automacros_index_list($automacro);
+				if ($condition->condition_type == EVENT_TYPE) {
+					debug "[eventMacro] Skipping condition '".$condition->get_name."' of index '".$condition->get_index."' because it is of the event type.\n", "eventMacro", 3;
+					$check_event_type = 1;
+					next;
+				} else {
+					debug "[eventMacro] Variable value will be updated in condition of state type in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3 if ($callback_type eq 'variable');
 
-				#remove from running queue
-				} elsif ($result && exists $self->{Currently_AI_state_Adapted_Automacros}{$automacro_index} && $automacro->can_be_added_to_queue) {
-					$self->add_to_triggered_prioritized_automacros_index_list($automacro);
+					my $result = $automacro->check_state_type_condition($condition_index, $callback_type, $callback_name, $callback_args);
 
+					#add to running queue
+					if (!$result && $automacro->running_status) {
+						$self->remove_from_triggered_prioritized_automacros_index_list($automacro);
+
+					#remove from running queue
+					} elsif ($result && exists $self->{Currently_AI_state_Adapted_Automacros}{$automacro_index} && $automacro->can_be_added_to_queue) {
+						$self->add_to_triggered_prioritized_automacros_index_list($automacro);
+
+					}
 				}
 			}
-		}
 
-		if ($check_event_type) {
+			if ($check_event_type) {
 
-			if ($callback_type eq 'variable') {
-				debug "[eventMacro] Variable value will be updated in condition of event type in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3;
-				$automacro->check_event_type_condition($callback_type, $callback_name, $callback_args);
+				if ($callback_type eq 'variable') {
+					debug "[eventMacro] Variable value will be updated in condition of event type in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3;
+					$automacro->check_event_type_condition($callback_type, $callback_name, $callback_args);
 
-			} elsif (exists $self->{Currently_AI_state_Adapted_Automacros}{$automacro_index} && ($self->get_automacro_checking_status == CHECKING_AUTOMACROS || $self->get_automacro_checking_status == CHECKING_FORCED_BY_USER) && $automacro->can_be_run_from_event) {
-				debug "[eventMacro] Condition of event type will be checked in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3;
+				} elsif (exists $self->{Currently_AI_state_Adapted_Automacros}{$automacro_index} && ($self->get_automacro_checking_status == CHECKING_AUTOMACROS || $self->get_automacro_checking_status == CHECKING_FORCED_BY_USER) && $automacro->can_be_run_from_event) {
+					debug "[eventMacro] Condition of event type will be checked in automacro '".$automacro->get_name()."'.\n", "eventMacro", 3;
 
-				if ($automacro->check_event_type_condition($callback_type, $callback_name, $callback_args)) {
-					debug "[eventMacro] Condition of event type was fulfilled.\n", "eventMacro", 3;
+					if ($automacro->check_event_type_condition($callback_type, $callback_name, $callback_args)) {
+						debug "[eventMacro] Condition of event type was fulfilled.\n", "eventMacro", 3;
 
-					if (!defined $event_type_automacro_call_priority) {
-						debug "[eventMacro] Automacro '".$automacro->get_name."' of priority '".$automacro->get_parameter('priority')."' was added to the top of queue.\n", "eventMacro", 3;
-						$event_type_automacro_call_index = $automacro_index;
-						$event_type_automacro_call_priority = $automacro->get_parameter('priority');
+						if (!defined $event_type_automacro_call_priority) {
+							debug "[eventMacro] Automacro '".$automacro->get_name."' of priority '".$automacro->get_parameter('priority')."' was added to the top of queue.\n", "eventMacro", 3;
+							$event_type_automacro_call_index = $automacro_index;
+							$event_type_automacro_call_priority = $automacro->get_parameter('priority');
 
-					} elsif ($event_type_automacro_call_priority >= $automacro->get_parameter('priority')) {
-						debug "[eventMacro] Automacro '".$automacro->get_name."' of priority '".$automacro->get_parameter('priority')."' was added to the top of queue and took place of automacro '".$self->{Automacro_List}->get($event_type_automacro_call_index)->get_name."' which has priority '".$event_type_automacro_call_priority."'.\n", "eventMacro", 3;
-						$event_type_automacro_call_index = $automacro_index;
-						$event_type_automacro_call_priority = $automacro->get_parameter('priority');
+						} elsif ($event_type_automacro_call_priority >= $automacro->get_parameter('priority')) {
+							debug "[eventMacro] Automacro '".$automacro->get_name."' of priority '".$automacro->get_parameter('priority')."' was added to the top of queue and took place of automacro '".$self->{Automacro_List}->get($event_type_automacro_call_index)->get_name."' which has priority '".$event_type_automacro_call_priority."'.\n", "eventMacro", 3;
+							$event_type_automacro_call_index = $automacro_index;
+							$event_type_automacro_call_priority = $automacro->get_parameter('priority');
+
+						} else {
+							debug "[eventMacro] Automacro '".$automacro->get_name()."' was not added to running queue because there already is a higher priority event only automacro in it (automacro '".$self->{Automacro_List}->get($event_type_automacro_call_index)->get_name."' which has priority '".$event_type_automacro_call_priority."').\n", "eventMacro", 3;
+
+						}
 
 					} else {
-						debug "[eventMacro] Automacro '".$automacro->get_name()."' was not added to running queue because there already is a higher priority event only automacro in it (automacro '".$self->{Automacro_List}->get($event_type_automacro_call_index)->get_name."' which has priority '".$event_type_automacro_call_priority."').\n", "eventMacro", 3;
+						debug "[eventMacro] Condition of event type was not fulfilled.\n", "eventMacro", 3;
 
 					}
 
 				} else {
-					debug "[eventMacro] Condition of event type was not fulfilled.\n", "eventMacro", 3;
+					debug "[eventMacro] Condition of event type will not be checked in automacro '".$automacro->get_name()."' because it is not necessary.\n", "eventMacro", 3;
 
 				}
-
-			} else {
-				debug "[eventMacro] Condition of event type will not be checked in automacro '".$automacro->get_name()."' because it is not necessary.\n", "eventMacro", 3;
-
 			}
 		}
-	}
 
-	if (defined $event_type_automacro_call_index) {
+		if (defined $event_type_automacro_call_index) {
 
-		my $automacro = $self->{Automacro_List}->get($event_type_automacro_call_index);
+			my $automacro = $self->{Automacro_List}->get($event_type_automacro_call_index);
 
-		message "[eventMacro] Event of type '".$callback_type."', and of name '".$callback_name."' activated automacro '".$automacro->get_name()."', calling macro '".$automacro->get_parameter('call')."'\n", "system";
+			message "[eventMacro] Event of type '".$callback_type."', and of name '".$callback_name."' activated automacro '".$automacro->get_name()."', calling macro '".$automacro->get_parameter('call')."'\n", "system";
 
-		$self->call_macro($automacro);
+			$self->call_macro($automacro);
+		}
 	}
 }
 
