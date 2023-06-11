@@ -17,7 +17,7 @@ reconnect 30
 reconnect_backoff 30,60,120,180,300,600,600,900,900,1800
 
 # Add a random amount of seconds to reconnect time, up to a maximum of reconnect_random seconds.
-reconnect_random 20
+reconnect_random 40
 
 # Wait x seconds for a poseidon reply before disconnecting
 # Ignore this if you don't use Poseidon Server
@@ -26,8 +26,8 @@ poseidon_wait_reply 15
 # Activate AI after x seconds after the map's loaded
 ai 2
 
-ai_move_retry 0.25
-ai_move_giveup 1
+ai_move_retry 0.75
+ai_move_giveup 1.8
 
 ai_homunculus_standby 0.5
 ai_mercenary_standby 0.5
@@ -76,7 +76,7 @@ ai_route_unstuck 2
 # Pause for the specified number of seconds after taking something,
 # it increases the interval between taking several items and between
 # taking the last item and continuing the actions.
-ai_items_take_delay 1.4
+ai_items_take_delay 1
 
 # When your monster died, start checking for loot after x seconds
 ai_items_take_start 0.4
@@ -86,17 +86,17 @@ ai_items_take_end 1.2
 
 # When standing near an item, send the 'take' packet every x seconds until
 # the item has been taken.
-ai_take .4
+ai_take .8
 
 # Give up if unable to pickup item after x seconds
 ai_take_giveup 3
-ai_items_gather_giveup 3
+ai_items_gather_giveup 2
 
 # Every x seconds, check items for gathering
-ai_items_gather_auto .3
+ai_items_gather_auto 1
 
 # Only gather items that have been more than x seconds on screen
-ai_items_gather_start .3
+ai_items_gather_start 1
 
 # Delay between items when tranferring in batches.
 ai_transfer_items 0.15
