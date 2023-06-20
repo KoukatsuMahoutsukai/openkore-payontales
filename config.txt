@@ -899,14 +899,14 @@ buyAuto {
 	minBase
 }
 
-sellAuto 0
+sellAuto 1
 sellAuto_npc payon 79 124
 sellAuto_standpoint
 sellAuto_distance 3
 sellAuto_maxDistance
 sellAuto_npc_steps s
 
-storageAuto 0
+storageAuto 1
 storageAuto_npc payon 99 116
 storageAuto_standpoint
 storageAuto_distance 3
